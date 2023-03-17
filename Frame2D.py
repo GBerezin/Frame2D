@@ -269,11 +269,11 @@ class Model:
                 x = (j + 1) * dl
                 Mi[j + 1] = -q2 * x * (l - x) / 2 + (Mi[0] + x * dM)
             M[i, :] = Mi
-        pd.DataFrame(Model1.K).to_csv(os.path.join(dpath, 'K.csv'), sep=';')
+        pd.DataFrame(self.K).to_csv(os.path.join(dpath, 'K.csv'), sep=';')
         print('Перемещения узлов')
-        print(pd.DataFrame(np.round(Model1.U.reshape(Model1.nj, 3), 6),
+        print(pd.DataFrame(np.round(self.U.reshape(self.nj, 3), 6),
                            columns=['UX[м]', 'ZX[м]', 'RX[рад]']))
-        pd.DataFrame(Model1.U.reshape(Model1.nj, 3),
+        pd.DataFrame(self.U.reshape(self.nj, 3),
                      columns=['UX', 'ZX', 'RX']).to_csv(os.path.join(dpath, 'U.csv'), sep=';')
         print('Продольные силы в сечениях элементов, N')
         print(pd.DataFrame(np.round(N, 4),
