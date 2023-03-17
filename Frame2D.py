@@ -1,7 +1,11 @@
+import Charts as Ch
 import pandas as pd
 import numpy as np
 import math
-import Charts as Ch
+import os
+dpath = os.path.join('.', 'data')
+Fr = pd.read_csv(os.path.join(dpath, 'Frames2D.csv'), sep=';')
+Sc = pd.read_csv(os.path.join(dpath, 'Sections2D.csv'), sep=';')
 
 
 class Frame:
@@ -10,13 +14,10 @@ class Frame:
     def __init__(self):
         """Constructor"""
 
-        self.Fr = pd.read_csv('Frames2D.csv', sep=';')
-        self.Sc = pd.read_csv('Sections2D.csv', sep=';')
-
     def setdata(self, f):
         """Данные КЭ"""
 
-        self.fedat = self.Fr.loc[f, :]
+        self.fedat = Fr.loc[f, :]
 
     def tfea(self, fedat):
         """Тип КЭ"""
@@ -96,9 +97,9 @@ class Frame:
         z2 = J1.jntdat['Z']
         z1 = J0.jntdat['Z']
         sf = self.fedat['Stiffness']
-        E = self.Sc['E'][sf]
-        A = self.Sc['A'][sf]
-        I = self.Sc['I'][sf]
+        E = Sc['E'][sf]
+        A = Sc['A'][sf]
+        I = Sc['I'][sf]
         self.l = math.sqrt((z2 - z1) ** 2 + (x2 - x1) ** 2)  # Длина КЭ
         cosa = (x2 - x1) / self.l
         sina = (z2 - z1) / self.l
@@ -110,17 +111,20 @@ class Frame:
     def feloads(self, i, l):
         """Узловые равнодействующие от равномерных нагрузок"""
 
-        q1 = Framei.Fr['q1'][i]
-        q2 = Framei.Fr['q2'][i]
+        q1 = Fr['q1'][i]
+        q2 = Fr['q2'][i]
         if self.TF == 1:
             Fq = np.array((q1 * l / 2, q2 * l / 2, -q2 * l **
                            2 / 12, q1 * l / 2, q2 * l / 2, q2 * l ** 2 / 12))
         elif self.TF == 2:
-            Fq = np.array((q1 * l / 2, 5 * q2 * l / 8, -q2 * l ** 2 / 8, q1 * l / 2, 3 * q2 * l / 8, 0))
+            Fq = np.array((q1 * l / 2, 5 * q2 * l / 8, -q2 * l **
+                          2 / 8, q1 * l / 2, 3 * q2 * l / 8, 0))
         elif self.TF == 3:
-            Fq = np.array((q1 * l / 2, 3 * q2 * l / 8, 0, q1 * l / 2, 5 * q2 * l / 8, q2 * l ** 2 / 8))
+            Fq = np.array((q1 * l / 2, 3 * q2 * l / 8, 0, q1 *
+                          l / 2, 5 * q2 * l / 8, q2 * l ** 2 / 8))
         elif self.TF == 4:
-            Fq = np.array((q1 * l / 2, q2 * l / 2, 0, q1 * l / 2, q2 * l / 2, 0))
+            Fq = np.array((q1 * l / 2, q2 * l / 2, 0,
+                          q1 * l / 2, q2 * l / 2, 0))
         else:
             Fq = np.zeros(6)
 
@@ -137,7 +141,7 @@ class Joint:
     def __init__(self):
         """Constructor"""
 
-        self.Jn = pd.read_csv('Joints2D.csv', sep=';')
+        self.Jn = pd.read_csv(os.path.join(dpath, 'Joints2D.csv'), sep=';')
 
     def setdata(self, j):
         """Данные узла КЭ"""
@@ -153,7 +157,7 @@ class Model:
 
         k = 0
         self.nj = Joint0.Jn.shape[0]
-        self.nf = Framei.Fr.shape[0]
+        self.nf = Fr.shape[0]
         DoF = np.zeros((self.nj, 3))  # Степени свободы узлов
         for i in range(0, self.nj):
             for j in range(0, 3):
@@ -162,8 +166,8 @@ class Model:
         self.A = np.zeros((6, self.nf))
         for i in range(0, self.nf):
             for j in range(0, 3):
-                self.A[j, i] = DoF[Framei.Fr['Start'][i]][j]
-                self.A[j + 3, i] = DoF[Framei.Fr['End'][i]][j]
+                self.A[j, i] = DoF[Fr['Start'][i]][j]
+                self.A[j + 3, i] = DoF[Fr['End'][i]][j]
         self.mC()
 
     def mC(self):
@@ -194,14 +198,14 @@ class Model:
             Framei.feloads(i, Framei.l)
             self.Fqi[i] = Framei.Fq
             self.Fq = self.Fq + \
-                      np.dot(np.dot(np.transpose(self.Ci[i]),
-                                    np.transpose(Framei.L)), self.Fqi[i])
+                np.dot(np.dot(np.transpose(self.Ci[i]),
+                              np.transpose(Framei.L)), self.Fqi[i])
             Framei.mk(Framei.EA, Framei.EI, Framei.l)
             self.Ki[i] = Framei.k
             self.Li[i] = Framei.L
             self.K = self.K + \
-                     np.matmul(np.matmul(np.transpose(
-                         self.Ci[i]), self.Ki[i]), self.Ci[i])
+                np.matmul(np.matmul(np.transpose(
+                    self.Ci[i]), self.Ki[i]), self.Ci[i])
         self.jntloads()
 
     def jntloads(self):
@@ -237,12 +241,13 @@ class Model:
         self.Si = np.zeros((self.nf, 6, 1))
         for i in range(0, self.nf):
             Framei.mU(i)
-            self.Si[i] = np.dot(np.matmul(self.Li[i], self.Ki[i]), Framei.U) - self.Fqi[i]
+            self.Si[i] = np.dot(
+                np.matmul(self.Li[i], self.Ki[i]), Framei.U) - self.Fqi[i]
 
     def nqm(self):
         n = 4
         coord = Joint0.Jn.values[:, :2]
-        id = Framei.Fr.values[:, :2]
+        id = Fr.values[:, :2]
         joints = coord[id]
         N = np.zeros((self.nf, 2))
         Q = np.zeros((self.nf, 2))
@@ -264,24 +269,28 @@ class Model:
                 x = (j + 1) * dl
                 Mi[j + 1] = -q2 * x * (l - x) / 2 + (Mi[0] + x * dM)
             M[i, :] = Mi
-        pd.DataFrame(Model1.K).to_csv('K.csv', sep=';')
+        pd.DataFrame(Model1.K).to_csv(os.path.join(dpath, 'K.csv'), sep=';')
         print('Перемещения узлов')
         print(pd.DataFrame(np.round(Model1.U.reshape(Model1.nj, 3), 6),
                            columns=['UX[м]', 'ZX[м]', 'RX[рад]']))
         pd.DataFrame(Model1.U.reshape(Model1.nj, 3),
-                     columns=['UX', 'ZX', 'RX']).to_csv('U.csv', sep=';')
+                     columns=['UX', 'ZX', 'RX']).to_csv(os.path.join(dpath, 'U.csv'), sep=';')
         print('Продольные силы в сечениях элементов, N')
-        print(pd.DataFrame(np.round(N, 4), columns=['Начало[кН]', 'Конец[кН]']))
-        pd.DataFrame(N, columns=['Start', 'End']).to_csv('N.csv', sep=';')
+        print(pd.DataFrame(np.round(N, 4),
+              columns=['Начало[кН]', 'Конец[кН]']))
+        pd.DataFrame(N, columns=['Start', 'End']).to_csv(
+            os.path.join(dpath, 'N.csv'), sep=';')
         print('Поперечные силы в сечениях элементов, Q')
-        print(pd.DataFrame(np.round(Q, 4), columns=['Начало[кН]', 'Конец[кН]']))
-        pd.DataFrame(Q, columns=['Start', 'End']).to_csv('Q.csv', sep=';')
+        print(pd.DataFrame(np.round(Q, 4),
+              columns=['Начало[кН]', 'Конец[кН]']))
+        pd.DataFrame(Q, columns=['Start', 'End']).to_csv(
+            os.path.join(dpath, 'Q.csv'), sep=';')
         print('Изгибающие моменты в сечениях элементов, M')
         print(pd.DataFrame(np.round(M, 4),
                            columns=['Начало[кН*м]', '0.25*L[кН*м]', '0.5*L[кН*м]', '0.75*L[кН*м]', 'Конец[кН*м]']))
         Ch.geom(coord, joints, 'Геометрия')
         pd.DataFrame(M, columns=['Start', '0.25*L', '0.5*L', '0.75*L', 'End']). \
-            to_csv('M.csv', sep=';')
+            to_csv(os.path.join(dpath, 'M.csv'), sep=';')
 
 
 if __name__ == "__main__":
