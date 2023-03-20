@@ -11,9 +11,6 @@ Sc = pd.read_csv(os.path.join(dpath, 'Sections2D.csv'), sep=';')
 class Frame:
     """КЭ 2D стержня."""
 
-    def __init__(self):
-        """Constructor"""
-
     def setdata(self, f):
         """Данные КЭ"""
 
@@ -130,10 +127,6 @@ class Frame:
 
         self.Fq = np.reshape(np.transpose(Fq), (6, 1))
 
-    def mU(self, i):
-        """Усилия в КЭ"""
-        self.U = np.dot(Model1.Ci[i], Model1.U)
-
 
 class Joint:
     """Узел КЭ 2D стержня """
@@ -152,11 +145,18 @@ class Joint:
 class Model:
     """Расчетная модель"""
 
+    def __init__(self, Joint0, Joint1, Framei):
+        """Constructor"""
+
+        self.Joint0 = Joint0
+        self.Joint1 = Joint1
+        self.Framei = Framei
+
     def mA(self):
         """Матрица топологии"""
 
         k = 0
-        self.nj = Joint0.Jn.shape[0]
+        self.nj = self.Joint0.Jn.shape[0]
         self.nf = Fr.shape[0]
         DoF = np.zeros((self.nj, 3))  # Степени свободы узлов
         for i in range(0, self.nj):
@@ -189,20 +189,20 @@ class Model:
         self.li = np.zeros(self.nf)
         self.q2i = np.zeros(self.nf)
         for i in range(0, self.nf):
-            Framei.setdata(i)
-            Joint0.setdata(Framei.fedat['Start'])
-            Joint1.setdata(Framei.fedat['End'])
-            Framei.prop(Joint0, Joint1)
-            self.li[i] = Framei.l
-            self.q2i[i] = Framei.fedat['q2']
-            Framei.feloads(i, Framei.l)
-            self.Fqi[i] = Framei.Fq
+            self.Framei.setdata(i)
+            self.Joint0.setdata(self.Framei.fedat['Start'])
+            self.Joint1.setdata(self.Framei.fedat['End'])
+            self.Framei.prop(self.Joint0, self.Joint1)
+            self.li[i] = self.Framei.l
+            self.q2i[i] = self.Framei.fedat['q2']
+            self.Framei.feloads(i, self.Framei.l)
+            self.Fqi[i] = self.Framei.Fq
             self.Fq = self.Fq + \
                 np.dot(np.dot(np.transpose(self.Ci[i]),
-                              np.transpose(Framei.L)), self.Fqi[i])
-            Framei.mk(Framei.EA, Framei.EI, Framei.l)
-            self.Ki[i] = Framei.k
-            self.Li[i] = Framei.L
+                              np.transpose(self.Framei.L)), self.Fqi[i])
+            self.Framei.mk(self.Framei.EA, self.Framei.EI, self.Framei.l)
+            self.Ki[i] = self.Framei.k
+            self.Li[i] = self.Framei.L
             self.K = self.K + \
                 np.matmul(np.matmul(np.transpose(
                     self.Ci[i]), self.Ki[i]), self.Ci[i])
@@ -213,15 +213,15 @@ class Model:
 
         self.Fp = np.zeros((self.nj * 3, 1))
         for i in range(0, self.nj):
-            self.Fp[i * 3] = Joint0.Jn['Fx'][i]
-            self.Fp[i * 3 + 1] = Joint0.Jn['Fz'][i]
-            self.Fp[i * 3 + 2] = Joint0.Jn['My'][i]
+            self.Fp[i * 3] = self.Joint0.Jn['Fx'][i]
+            self.Fp[i * 3 + 1] = self.Joint0.Jn['Fz'][i]
+            self.Fp[i * 3 + 2] = self.Joint0.Jn['My'][i]
         self.F = self.Fp + self.Fq
 
     def rstrs(self):
         """Граничные условия"""
         for i in range(0, self.nj):
-            rstr = Joint0.Jn[['UX', 'UZ', 'RY']].iloc[i]
+            rstr = self.Joint0.Jn[['UX', 'UZ', 'RY']].iloc[i]
             for j in range(0, 3):
                 if rstr[j] != 0:
                     rs = i * 3 + j
@@ -237,16 +237,20 @@ class Model:
         """Решение"""
         self.U = np.dot(np.linalg.inv(self.K), self.F)
 
+    def mU(self, i):
+        """Усилия в КЭ"""
+        self.U_ = np.dot(self.Ci[i], self.U)
+
     def mS(self):
         self.Si = np.zeros((self.nf, 6, 1))
         for i in range(0, self.nf):
-            Framei.mU(i)
+            self.mU(i)
             self.Si[i] = np.dot(
-                np.matmul(self.Li[i], self.Ki[i]), Framei.U) - self.Fqi[i]
+                np.matmul(self.Li[i], self.Ki[i]), self.U_) - self.Fqi[i]
 
     def nqm(self):
         n = 4
-        coord = Joint0.Jn.values[:, :2]
+        coord = self.Joint0.Jn.values[:, :2]
         id = Fr.values[:, :2]
         joints = coord[id]
         N = np.zeros((self.nf, 2))
@@ -297,7 +301,7 @@ if __name__ == "__main__":
     Framei = Frame()
     Joint0 = Joint()
     Joint1 = Joint()
-    Model1 = Model()
+    Model1 = Model(Joint0, Joint1, Framei)
     Model1.mA()
     Model1.rstrs()
     Model1.sol()
