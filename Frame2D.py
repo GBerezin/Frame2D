@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import math
 import os
-dpath = os.path.join('.', 'data')
+dpath = os.path.join(os.curdir, 'data')
 Fr = pd.read_csv(os.path.join(dpath, 'Frames2D.csv'), sep=';')
 Sc = pd.read_csv(os.path.join(dpath, 'Sections2D.csv'), sep=';')
 
