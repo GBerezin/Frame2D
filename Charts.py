@@ -1,10 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.lines as ln
-import matplotlib.path
 import matplotlib.patches
 
-plt.style.use('seaborn-whitegrid')
 
 
 def geom(coord, jn, name):

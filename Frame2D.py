@@ -223,7 +223,7 @@ class Model:
         for i in range(0, self.nj):
             rstr = self.Joint0.Jn[['UX', 'UZ', 'RY']].iloc[i]
             for j in range(0, 3):
-                if rstr[j] != 0:
+                if rstr.iloc[j] != 0:
                     rs = i * 3 + j
                     for k in range(0, self.nj * 3):
                         self.K[rs, k] = 0
