@@ -30,7 +30,7 @@ class Frame:
         else:
             self.TF = 4
 
-    def mL(self, cosa, sina):
+    def mL(self, cosa, sina, fi):
         """Матрица преобразования координат"""
 
         self.L = np.array([[cosa, sina, 0, 0, 0, 0],
@@ -39,8 +39,10 @@ class Frame:
                            [0, 0, 0, cosa, sina, 0],
                            [0, 0, 0, -sina, cosa, 0],
                            [0, 0, 0, 0, 0, 1]])
+        print("Матрица преобразования координат КЭ {:d}:".format(fi))
+        print(np.round(self.L, 3))
 
-    def mk(self, EA, EI, l):
+    def mk(self, EA, EI, l, fi):
         """Матрица жесткости КЭ в глобальной системе координат"""
         k = np.zeros((6, 6))
         if self.TF == 1:
@@ -84,9 +86,13 @@ class Frame:
         for i in range(0, 6):
             for j in range(0, 6):
                 k[j, i] = k[i, j]
+        print("Матрица жесткости КЭ {:d} в локальной системе координат:".format(fi))
+        print(np.round(k, 2))
         self.k = np.matmul(np.matmul(np.transpose(self.L), k), self.L)
+        print("Матрица жесткости КЭ {:d} в глобальной системе координат:".format(fi))
+        print(np.round(self.k, 2))
 
-    def prop(self, J0, J1):
+    def prop(self, J0, J1, fi):
         """Свойства элемента"""
 
         x2 = J1.jntdat['X']
@@ -103,7 +109,7 @@ class Frame:
         self.EA = E * A  # Жесткость продольная
         self.EI = E * I  # Жесткость изгиба
         self.tfea(self.fedat)
-        self.mL(cosa, sina)
+        self.mL(cosa, sina, fi)
 
     def feloads(self, i, l):
         """Узловые равнодействующие от равномерных нагрузок"""
@@ -192,7 +198,7 @@ class Model:
             self.Framei.setdata(i)
             self.Joint0.setdata(self.Framei.fedat['Start'])
             self.Joint1.setdata(self.Framei.fedat['End'])
-            self.Framei.prop(self.Joint0, self.Joint1)
+            self.Framei.prop(self.Joint0, self.Joint1, i)
             self.li[i] = self.Framei.l
             self.q2i[i] = self.Framei.fedat['q2']
             self.Framei.feloads(i, self.Framei.l)
@@ -200,12 +206,16 @@ class Model:
             self.Fq = self.Fq + \
                 np.dot(np.dot(np.transpose(self.Ci[i]),
                               np.transpose(self.Framei.L)), self.Fqi[i])
-            self.Framei.mk(self.Framei.EA, self.Framei.EI, self.Framei.l)
+            self.Framei.mk(self.Framei.EA, self.Framei.EI, self.Framei.l, i)
+            print()
             self.Ki[i] = self.Framei.k
             self.Li[i] = self.Framei.L
             self.K = self.K + \
                 np.matmul(np.matmul(np.transpose(
                     self.Ci[i]), self.Ki[i]), self.Ci[i])
+        print("Матрица жесткости в глобальной системе координат:")
+        print(np.round(self.K, 2))
+        print()
         self.jntloads()
 
     def jntloads(self):
