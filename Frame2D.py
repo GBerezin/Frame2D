@@ -41,6 +41,7 @@ class Frame:
                            [0, 0, 0, 0, 0, 1]])
         print("Матрица преобразования координат КЭ {:d}:".format(fi))
         print(np.round(self.L, 3))
+        print()
 
     def mk(self, EA, EI, l, fi):
         """Матрица жесткости КЭ в глобальной системе координат"""
@@ -174,6 +175,10 @@ class Model:
             for j in range(0, 3):
                 self.A[j, i] = DoF[Fr['Start'][i]][j]
                 self.A[j + 3, i] = DoF[Fr['End'][i]][j]
+        print()
+        print("Матрица топологии")
+        print(self.A)
+        print()
         self.mC()
 
     def mC(self):
@@ -182,6 +187,10 @@ class Model:
         for i in range(0, self.nf):
             for j in range(0, 6):
                 self.Ci[i, j, int(self.A[j, i])] = 1
+        print()
+        print("Матрица положения КЭ")
+        print(self.Ci)
+        print()
         self.mK()
 
     def mK(self):
@@ -216,7 +225,14 @@ class Model:
         print("Матрица жесткости в глобальной системе координат:")
         print(np.round(self.K, 2))
         print()
+        print("Узловые равнодействующие от равномерных нагрузок")
+        print(self.Fq)
+        print()
         self.jntloads()
+        print()
+        print("Узловые нагрузки")
+        print(self.F)
+        print()
 
     def jntloads(self):
         """Узловые нагрузки"""
@@ -248,15 +264,19 @@ class Model:
         self.U = np.dot(np.linalg.inv(self.K), self.F)
 
     def mU(self, i):
-        """Усилия в КЭ"""
         self.U_ = np.dot(self.Ci[i], self.U)
 
     def mS(self):
+        """Узловые усилия в КЭ"""
         self.Si = np.zeros((self.nf, 6, 1))
         for i in range(0, self.nf):
             self.mU(i)
             self.Si[i] = np.dot(
                 np.matmul(self.Li[i], self.Ki[i]), self.U_) - self.Fqi[i]
+        print()
+        print("Узловые усилия в КЭ")
+        print(self.Si)
+        print()
 
     def nqm(self):
         n = 4
