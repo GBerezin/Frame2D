@@ -238,7 +238,7 @@ class Model:
         """Узловые нагрузки"""
 
         self.Fp = np.zeros((self.nj * 3, 1))
-        for i in range(0, self.nj):
+        for i in range(0, self.nf):
             self.Fp[i * 3] = self.Joint0.Jn['Fx'][i]
             self.Fp[i * 3 + 1] = self.Joint0.Jn['Fz'][i]
             self.Fp[i * 3 + 2] = self.Joint0.Jn['My'][i]
