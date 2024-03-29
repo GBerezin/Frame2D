@@ -89,9 +89,11 @@ class Frame:
                 k[j, i] = k[i, j]
         print("Матрица жесткости КЭ {:d} в локальной системе координат:".format(fi))
         print(np.round(k, 2))
-        self.k = np.matmul(np.matmul(np.transpose(self.L), k), self.L)
+        kf = np.matmul(np.matmul(np.transpose(self.L), k), self.L)
+        print()
         print("Матрица жесткости КЭ {:d} в глобальной системе координат:".format(fi))
-        print(np.round(self.k, 2))
+        print(np.round(kf, 2))
+        self.k = kf
 
     def prop(self, J0, J1, fi):
         """Свойства элемента"""
@@ -178,7 +180,6 @@ class Model:
         print()
         print("Матрица топологии")
         print(self.A)
-        print()
         self.mC()
 
     def mC(self):
@@ -229,7 +230,6 @@ class Model:
         print(self.Fq)
         print()
         self.jntloads()
-        print()
         print("Узловые нагрузки")
         print(self.F)
         print()
@@ -273,7 +273,6 @@ class Model:
             self.mU(i)
             self.Si[i] = np.dot(
                 np.matmul(self.Li[i], self.Ki[i]), self.U_) - self.Fqi[i]
-        print()
         print("Узловые усилия в КЭ")
         print(self.Si)
         print()
@@ -309,16 +308,19 @@ class Model:
                            columns=['UX[м]', 'ZX[м]', 'RX[рад]']))
         pd.DataFrame(self.U.reshape(self.nj, 3),
                      columns=['UX', 'ZX', 'RX']).to_csv(os.path.join(dpath, 'U.csv'), sep=';')
+        print()
         print('Продольные силы в сечениях элементов, N')
         print(pd.DataFrame(np.round(N, 4),
               columns=['Начало[кН]', 'Конец[кН]']))
         pd.DataFrame(N, columns=['Start', 'End']).to_csv(
             os.path.join(dpath, 'N.csv'), sep=';')
+        print()
         print('Поперечные силы в сечениях элементов, Q')
         print(pd.DataFrame(np.round(Q, 4),
               columns=['Начало[кН]', 'Конец[кН]']))
         pd.DataFrame(Q, columns=['Start', 'End']).to_csv(
             os.path.join(dpath, 'Q.csv'), sep=';')
+        print()
         print('Изгибающие моменты в сечениях элементов, M')
         print(pd.DataFrame(np.round(M, 4),
                            columns=['Начало[кН*м]', '0.25*L[кН*м]', '0.5*L[кН*м]', '0.75*L[кН*м]', 'Конец[кН*м]']))
